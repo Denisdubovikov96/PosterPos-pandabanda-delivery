@@ -1,0 +1,17 @@
+.pick-courier {
+    height: 100%;
+    overflow-y: scroll;
+}
+ol {
+    list-style-position: inside;
+}
+h5 {
+    font-size: 20px;
+    font-weight: 600;
+}
+.Alerts {
+    margin-right: 5px;
+}
+.Alerts > div {
+    margin-bottom: 5px;
+}
