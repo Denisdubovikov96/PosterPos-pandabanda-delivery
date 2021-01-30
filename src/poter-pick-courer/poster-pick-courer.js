@@ -195,7 +195,7 @@ export default function PosterPickCourer() {
     const comment = `${orderInfo.comment} (Время доставки заказа ${date.format(
       new Date(orderInfo.deliveryInfo.deliveryTime),
       "DD/MM, HH:mm"
-    )}`;
+    )})`;
 
     // const sumInKop = orderInfo.total * 100;
     const add =
