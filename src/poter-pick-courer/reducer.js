@@ -1,7 +1,7 @@
 /* eslint-disable */
 
 export const actionTypes = {
-  SET_SPOTS: "SET_SPOTS",
+  // SET_SPOTS: "SET_SPOTS",
   SET_ALL_EMPLOYERS: "SET_ALL_EMPLOYERS",
   SET_COURIER: "SET_COURIER",
   SET_MANADGER: "SET_MANADGER",
@@ -9,6 +9,7 @@ export const actionTypes = {
   SET_CLIENT_INFO: "SET_CLIENT_INFO",
   SET_ORDER_INFO: "SET_ORDER_INFO",
   ERROR: "ERROR",
+  SET_TABLETS: "SET_TABLETS",
 };
 
 export const initialValues = {
@@ -19,15 +20,21 @@ export const initialValues = {
   orderInfo: null,
   products: [],
   clientInfo: null,
-  error: null,
+  error: {},
+  tablets: [],
 };
 
 export const reducer = (state, { type, payload }) => {
   switch (type) {
-    case actionTypes.SET_SPOTS:
+    // case actionTypes.SET_SPOTS:
+    //   return {
+    //     ...state,
+    //     spots: payload,
+    //   };
+    case actionTypes.SET_TABLETS:
       return {
         ...state,
-        spots: payload,
+        tablets: payload,
       };
     case actionTypes.SET_ORDER_INFO:
       return {
@@ -62,7 +69,7 @@ export const reducer = (state, { type, payload }) => {
     case actionTypes.ERROR:
       return {
         ...state,
-        error: payload,
+        error: { ...state.error, ...payload },
       };
 
     default:
@@ -70,12 +77,12 @@ export const reducer = (state, { type, payload }) => {
   }
 };
 
-const setSpots = (spots) => {
-  return {
-    type: actionTypes.SET_SPOTS,
-    payload: spots,
-  };
-};
+// const setSpots = (spots) => {
+//   return {
+//     type: actionTypes.SET_SPOTS,
+//     payload: spots,
+//   };
+// };
 
 const setAllEployers = (employers) => {
   return {
@@ -112,10 +119,10 @@ const setClientInfo = (clientInfo) => {
   };
 };
 
-const setError = (error) => {
+const setError = (key, value) => {
   return {
     type: actionTypes.ERROR,
-    payload: error,
+    payload: { [key]: value },
   };
 };
 
@@ -126,8 +133,15 @@ const setOrderInfo = (order) => {
   };
 };
 
+const setTablets = (tablets) => {
+  return {
+    type: actionTypes.SET_TABLETS,
+    payload: tablets,
+  };
+};
+
 export const actions = {
-  setSpots,
+  // setSpots,
   setAllEployers,
   setCourier,
   setManager,
@@ -135,4 +149,5 @@ export const actions = {
   setClientInfo,
   setError,
   setOrderInfo,
+  setTablets,
 };

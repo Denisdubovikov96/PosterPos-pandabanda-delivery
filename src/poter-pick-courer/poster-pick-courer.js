@@ -8,6 +8,7 @@ import Box from "@material-ui/core/Box";
 import TextField from "@material-ui/core/TextField";
 import Button from "@material-ui/core/Button";
 import Autocomplete from "@material-ui/lab/Autocomplete";
+import date from "date-and-time";
 import { toArray } from "./helperFunctions";
 import { actions, reducer, initialValues } from "./reducer";
 import List from "./List";
@@ -37,7 +38,7 @@ export default function PosterPickCourer() {
   const [state, dispatch] = useReducer(reducer, initialValues);
   const [shownTab, setShownTab] = useState("courier");
   const {
-    spots,
+    // spots,
     allEmployers,
     clientInfo,
     courier,
@@ -45,18 +46,22 @@ export default function PosterPickCourer() {
     manadger,
     orderInfo,
     products: orderProducts,
+    tablets,
   } = state;
 
   // console.log(state);
 
-  const [selectedSpot, setSelectedSpot] = useState(null);
+  const [selectedTablet, setSelectedTablet] = useState(null);
   const [inputValue, setInputValue] = useState("");
+
+  // const [tablets, setTablets] = useState([]);
 
   // const [currentSpot, setCurrentSpot] = useState(null);
   // const [inputValue2, setInputValue2] = useState("");
-
+  // console.log("tablets", tablets);
   useEffect(() => {
     const makeReq = () => {
+      // console.log("GET ___ DATA");
       Poster.makeApiRequest(
         "access.getEmployees",
         {
@@ -68,15 +73,26 @@ export default function PosterPickCourer() {
           }
         }
       );
+      // Poster.makeApiRequest(
+      //   "access.getSpots",
+      //   {
+      //     method: "get",
+      //     body: { "1c": true },
+      //   },
+      //   (respSpots) => {
+      //     if (respSpots) {
+      //       dispatch(actions.setSpots(respSpots));
+      //     }
+      //   }
+      // );
       Poster.makeApiRequest(
-        "access.getSpots",
+        "access.getTablets",
         {
           method: "get",
-          body: { "1c": true },
         },
-        (respSpots) => {
-          if (respSpots) {
-            dispatch(actions.setSpots(respSpots));
+        (respTablets) => {
+          if (respTablets) {
+            dispatch(actions.setTablets(respTablets));
           }
         }
       );
@@ -91,6 +107,7 @@ export default function PosterPickCourer() {
   // событие по клику
   Poster.on("applicationIconClicked", () => {
     Poster.orders.getActive().then(({ order }) => {
+      // console.log("HERE");
       // console.log(resp);
       // const { order } = resp;
       dispatch(actions.setOrderInfo(order));
@@ -152,27 +169,57 @@ export default function PosterPickCourer() {
         mode: "no-cors",
       }).then((resp) => {
         if (resp.status === 0) {
-          dispatch(actions.setError(false));
+          // console.log("courierRequestStart", resp);
+          dispatch(actions.setError("courierRequest", false));
           Poster.interface.closePopup();
-        } else {
-          dispatch(actions.setError(true));
+          return;
         }
+        // console.log("courierRequestError", resp);
+        dispatch(actions.setError("courierRequest", true));
       });
     }
   };
 
   const sendToAnotherSpot = () => {
     const productForRequest = orderProducts.map((item) => {
+      if (item.modification) {
+        const modification = JSON.parse(item.modification);
+        // console.log(modification);
+        return { product_id: item.id, count: item.count, modification };
+      }
       return { product_id: item.id, count: item.count };
     });
+    // const comment = `${orderInfo.comment} (Время доставки заказа ${new Date(
+    //   orderInfo.deliveryInfo.deliveryTime
+    // ).toLocaleString()})`;
+    const comment = `${orderInfo.comment} (Время доставки заказа ${date.format(
+      new Date(orderInfo.deliveryInfo.deliveryTime),
+      "DD/MM, HH:mm"
+    )}`;
 
+    // const sumInKop = orderInfo.total * 100;
+    const add =
+      orderInfo.deliveryInfo.address1 || orderInfo.deliveryInfo.address2;
     const data = {
-      spot_id: selectedSpot.spot_id,
-      products: productForRequest,
+      spot_id: selectedTablet.spot_id,
+      client_id: clientInfo.id,
+      first_name: clientInfo.firstname,
+      last_name: clientInfo.lastname,
       phone: clientInfo.phone,
-      id: clientInfo.id,
+      email: clientInfo.email,
+      sex: clientInfo.clientSex,
+      birthday: clientInfo.birthday,
+      address: add,
+      service_mode: orderInfo.serviceMode,
+      products: productForRequest,
+      comment,
+      // payment: {
+      //   type: orderInfo.payType,
+      //   sum: sumInKop,
+      //   currency: "UAH",
+      // },
     };
-
+    // console.log("req data", data);
     Poster.makeApiRequest(
       "incomingOrders.createIncomingOrder",
       {
@@ -181,9 +228,40 @@ export default function PosterPickCourer() {
         data,
       },
       (resp) => {
+        // console.log("spotReqStart", resp);
         if (resp) {
-          Poster.interface.closePopup();
+          const currenTablet = tablets.filter(
+            (item) => item.spot_id !== selectedTablet.spot_id
+          );
+          // console.log("currenTablet", currenTablet);
+          const dataForClose = {
+            spot_tablet_id: currenTablet[0].tablet_id,
+            transaction_id: orderInfo.orderName,
+            user_id: manadger.user_id,
+          };
+          // console.log("dataForClose", dataForClose);
+          Poster.makeApiRequest(
+            "transactions.removeTransaction",
+            {
+              method: "post",
+              contentType: "application/json;charset=utf-8",
+              data: dataForClose,
+            },
+            (succesClose) => {
+              // console.log("closeTransactionStart", succesClose);
+              if (succesClose) {
+                dispatch(actions.setError("closeTransaction", false));
+                Poster.interface.closePopup();
+                return;
+              }
+              // console.log("closeTransactionError", resp);
+              dispatch(actions.setError("closeTransaction", true));
+            }
+          );
+          return;
         }
+        // console.log("spotReqError", resp);
+        dispatch(actions.setError("spotRequest", true));
       }
     );
   };
@@ -194,7 +272,7 @@ export default function PosterPickCourer() {
   const isProductsSelected = Boolean(orderProducts.length);
   const isCourierSelected = Boolean(courier);
   const isClientSelected = Boolean(clientInfo);
-  const isSpotSelected = Boolean(selectedSpot);
+  const isSpotSelected = Boolean(selectedTablet);
   // const isCurrentSpotSelected = Boolean(currentSpot);
 
   const courierBtnStatusSuccess = isCourierSelected && isProductsSelected;
@@ -223,7 +301,7 @@ export default function PosterPickCourer() {
           {!isProductsSelected && (
             <Alert severity="error">Выберите товары</Alert>
           )}
-          {error && (
+          {Boolean(error.courierRequest) && (
             <Alert severity="error">Произошла ошибка при отправке</Alert>
           )}
         </div>
@@ -252,8 +330,15 @@ export default function PosterPickCourer() {
           {!isProductsSelected && (
             <Alert severity="error">Выберите товары</Alert>
           )}
-          {error && (
-            <Alert severity="error">Произошла ошибка при отправке</Alert>
+          {Boolean(error.spotRequest) && (
+            <Alert severity="error">
+              Произошла ошибка при отправке в заведение
+            </Alert>
+          )}
+          {Boolean(error.closeTransaction) && (
+            <Alert severity="error">
+              Произошла ошибка при закрытии в терминале
+            </Alert>
           )}
           {!isClientSelected && (
             <Alert severity="error">Выберите клиента</Alert>
@@ -275,21 +360,22 @@ export default function PosterPickCourer() {
             : null} */}
         </div>
         <Autocomplete
-          value={selectedSpot}
+          value={selectedTablet}
           id="select-spot"
           style={{ marginBottom: 10, width: "100%" }}
           onChange={(_, newValue) => {
-            setSelectedSpot(newValue);
+            // console.log(newValue);
+            setSelectedTablet(newValue);
           }}
           inputValue={inputValue}
           onInputChange={(_, newInputValue) => {
             setInputValue(newInputValue);
           }}
-          getOptionLabel={(option) => option.spot_name}
-          options={spots}
-          renderOption={(spot) => (
-            <React.Fragment key={`${spot.spot_id}-current`}>
-              <span>{spot.spot_name}</span>
+          getOptionLabel={(option) => option.tablet_name}
+          options={tablets}
+          renderOption={(tablet) => (
+            <React.Fragment key={`${tablet.spot_id}-current`}>
+              <span>{tablet.tablet_name}</span>
             </React.Fragment>
           )}
           renderInput={(params) => (
